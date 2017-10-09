@@ -12,4 +12,13 @@ We can adjust for this with a *perspective transform*, and thereby creating a *b
 
 Using the function `getPerspectiveTransform`, I can take corresponding source and destination and find the perspective transformation, linearly. To reproject, I can use the function by switching source and destination. To warp the image, I can use `warpPerspective`.
 
+## Edge Detection with Gradients
+
+Using the Sobel gradient matrix, we apply a convolutional kernel to the entire image that is defined to calculate areas in which there is a high gradient. If we threshold, we can meet a certain criteria on how sharp an edge we're looking at. This involves a magnitude and phase component of the actual image that we're looking at. The phase determines what orientation the lines are, and the magnitude reflects how intense the change in pixel values are.
+
+Magnitude: ```sobelxy = np.sqrt( sobelx**2 + sobely**2 ) ```
+
+Angle: ```dir_gradient = np.arctan2(abs_sobely, abs_sobelx)```
+
+Using a combined version of all of these, we can come up with outputs that meet our criteria.
 
