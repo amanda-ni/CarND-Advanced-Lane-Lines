@@ -1,10 +1,4 @@
-## Writeup Template
-
-### You can use this file as a template for your writeup if you want to submit it as a markdown file, but feel free to use some other method and submit a pdf if you prefer.
-
----
-
-**Advanced Lane Finding Project**
+# Advanced Lane Finding
 
 The goals / steps of this project are the following:
 
@@ -19,7 +13,7 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image1]: ./examples/undistort_output.png "Undistorted"
+[cam-calibration]: ./examples/cam-calibration/cam-calibration.png "Camera Calibration"
 [image2]: ./test_images/test1.jpg "Road Transformed"
 [image3]: ./examples/binary_combo_example.jpg "Binary Example"
 [image4]: ./examples/warped_straight_lines.jpg "Warp Example"
@@ -35,13 +29,11 @@ The goals / steps of this project are the following:
 
 ### Writeup / README
 
-#### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
-
-You're reading it!
+#### 1. This file ([writeup_template.md](writeup_template.md)) includes all the rubric points and how I addressed each one.  
 
 ### Camera Calibration
 
-#### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
+#### 1. I computed the camera matrix and distortion coefficients. Below is an example of a distortion corrected calibration image along with the processes by which I arrived at the camera calibration parameters.
 
 The code for this step is contained in the first code cell of the IPython notebook located in "./examples/example.ipynb" (or in lines # through # of the file called `some_file.py`).  
 
@@ -49,7 +41,7 @@ I start by preparing "object points", which will be the (x, y, z) coordinates of
 
 I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
 
-![alt text][image1]
+![Camera Calibration Distortion Correction][cam-calibration]
 
 ### Pipeline (single images)
 
@@ -70,25 +62,31 @@ The code for my perspective transform includes a function called `warper()`, whi
 
 ```python
 src = np.float32(
-    [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
-    [((img_size[0] / 6) - 10), img_size[1]],
-    [(img_size[0] * 5 / 6) + 60, img_size[1]],
-    [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
+     [[(img_size[0] / 2) - 55, img_size[1] / 2 + 100],
+     [((img_size[0] / 6) - 10), img_size[1]],
+     [(img_size[0] * 5 / 6) + 60, img_size[1]],
+     [(img_size[0] / 2 + 55), img_size[1] / 2 + 100]])
 dst = np.float32(
-    [[(img_size[0] / 4), 0],
-    [(img_size[0] / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), img_size[1]],
-    [(img_size[0] * 3 / 4), 0]])
+    [[(img_size[0] / 4) + 35, 0],
+     [(img_size[0] / 4), img_size[1]],
+     [(img_size[0] * 3 / 4), img_size[1]],
+     [(img_size[0] * 3 / 4) - 35, 0]])
 ```
+
+Both the arrays in the above correspond to the road points in an array that looks like:
+
+**[ UpperLeft, LowerLeft, LowerRight, UpperRight ]**
+
 
 This resulted in the following source and destination points:
 
 | Source        | Destination   | 
 |:-------------:|:-------------:| 
-| 585, 460      | 320, 0        | 
-| 203, 720      | 320, 720      |
-| 1127, 720     | 960, 720      |
-| 695, 460      | 960, 0        |
+| (585, 460)      | (355, 0)        | 
+| (203, 720)      | (355, 720)      |
+| (1126, 720)     | (925, 720)      |
+| (695, 460)      | (925, 0)        |
+
 
 I verified that my perspective transform was working as expected by drawing the `src` and `dst` points onto a test image and its warped counterpart to verify that the lines appear parallel in the warped image.
 
