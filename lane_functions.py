@@ -196,8 +196,8 @@ def find_poly_from_hist(binary_warped, margin=100, minpix=50):
     out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
     out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
     
-    left_all = zip( nonzerox[left_lane_inds], nonzeroy[left_lane_inds] )
-    right_all = zip( nonzerox[right_lane_inds], nonzeroy[right_lane_inds] )
+    left_all = (nonzerox[left_lane_inds], nonzeroy[left_lane_inds])
+    right_all = ( nonzerox[right_lane_inds], nonzeroy[right_lane_inds] )
 
     return left_fit, right_fit, left_all, right_all, out_img
 
@@ -255,7 +255,7 @@ def find_poly_from_poly(binary_warped, left_fit, right_fit):
     cv2.fillPoly(window_img, np.int_([right_line_pts]), (0,255, 0))
     out_img = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
         
-    return left_fit, right_fit, zip(leftx, lefty), zip(rightx, righty), out_img
+    return left_fit, right_fit, (leftx, lefty), (rightx, righty), out_img
 
 def detect_lanes(imname, mtx, dist, M, Minv):
     '''
