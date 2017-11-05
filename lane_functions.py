@@ -107,7 +107,7 @@ def window_mask(width, height, img_ref, center, level):
            max(0,int(center-width/2)):min(int(center+width/2),img_ref.shape[1])] = 1
     return output
 
-def find_sliding_poly(binary_warped, margin=100, minpix=50, visualize=False):
+def find_poly_from_hist(binary_warped, margin=100, minpix=50, visualize=False):
     '''
     Inputs:
         binary_warped - warped binary image of thresholded pixels
@@ -186,11 +186,40 @@ def find_sliding_poly(binary_warped, margin=100, minpix=50, visualize=False):
     # Fit a second order polynomial to each
     left_fit = np.polyfit(lefty, leftx, 2)
     right_fit = np.polyfit(righty, rightx, 2)
-
+    
     if visualize:
+        out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+        out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
         return left_fit, right_fit, out_img
 
     return left_fit, right_fit
+
+def detect_lanes(imname, mtx, dist, M, Minv):
+    '''
+    Full pipeline to detect lanes
+    Draw lanes on top of image given distortion and image warping matrix
+    Arguments:
+      imname - image name (text)
+      mtx - camera calibration coefficient
+      dist - distortion coefficient
+      M - warping matrix
+      Minv = inverse of warping matrix
+      
+    Returns:
+      image with lanes overlayed on top
+    '''
+    if type(imname) == str:
+        img = cv2.imread(imname)
+    else:
+        img = imname
+    img_size = (img.shape[1],img.shape[0])
+    calimg = cv2.undistort(img, mtx, dist, None, mtx)
+    warped = cv2.warpPerspective(calimg, M, img_size, flags=cv2.INTER_LINEAR)
+    color_binary, combined_binary = find_reclanes(warped)
+    left_fit, right_fit = find_poly_from_hist(combined_binary)
+    lanedrawn = draw_lane(left_fit, right_fit, img_size=img_size)
+    newwarp = cv2.warpPerspective(lanedrawn, Minv, (img.shape[1], img.shape[0]))     
+    return cv2.addWeighted(calimg, 1, newwarp, 0.3, 0)
 
 def draw_lane(left_fit, right_fit, img_size=(1280, 720)):
     
