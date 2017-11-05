@@ -107,7 +107,13 @@ def window_mask(width, height, img_ref, center, level):
            max(0,int(center-width/2)):min(int(center+width/2),img_ref.shape[1])] = 1
     return output
 
-def find_sliding_poly(binary_warped):
+def find_sliding_poly(binary_warped, margin=100, minpix=50, visualize=False):
+    '''
+    Inputs:
+        binary_warped - warped binary image of thresholded pixels
+        margin - the +/- width of the window being swept
+        minpix - the minimum number of pixels to recenter the window
+    '''
 
     # Assuming you have created a warped binary image called "binary_warped"
     # Take a histogram of the bottom half of the image
@@ -131,16 +137,14 @@ def find_sliding_poly(binary_warped):
     # Current positions to be updated for each window
     leftx_current = leftx_base
     rightx_current = rightx_base
-    # Set the width of the windows +/- margin
-    margin = 100
-    # Set minimum number of pixels found to recenter window
-    minpix = 50
+
     # Create empty lists to receive left and right lane pixel indices
     left_lane_inds = []
     right_lane_inds = []
 
     # Step through the windows one by one
     for window in range(nwindows):
+
         # Identify window boundaries in x and y (and right and left)
         win_y_low = binary_warped.shape[0] - (window+1)*window_height
         win_y_high = binary_warped.shape[0] - window*window_height
@@ -149,10 +153,12 @@ def find_sliding_poly(binary_warped):
         win_xright_low = rightx_current - margin
         win_xright_high = rightx_current + margin
         # Draw the windows on the visualization image
-        cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),
-        (0,255,0), 2) 
-        cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),
-        (0,255,0), 2) 
+        if visualize:
+            cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),
+            (0,255,0), 2) 
+            cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),
+            (0,255,0), 2) 
+
         # Identify the nonzero pixels in x and y within the window
         good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & 
         (nonzerox >= win_xleft_low) &  (nonzerox < win_xleft_high)).nonzero()[0]
@@ -180,7 +186,10 @@ def find_sliding_poly(binary_warped):
     # Fit a second order polynomial to each
     left_fit = np.polyfit(lefty, leftx, 2)
     right_fit = np.polyfit(righty, rightx, 2)
-    
+
+    if visualize:
+        return left_fit, right_fit, out_img
+
     return left_fit, right_fit
 
 def draw_lane(left_fit, right_fit, img_size=(1280, 720)):
