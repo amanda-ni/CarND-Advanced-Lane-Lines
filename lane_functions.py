@@ -265,15 +265,7 @@ def convert_curvature(leftx, rightx, ploty):
     # Calculate the new radii of curvature
     left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
     right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
-    # Center of the lane (from the left side of the screen)
-   
-    # Calculate the center of the lane 
-    if True:
-        yval = 100
-        x_lint = left_fit_cr[0]*yval**2 + left_fit_cr[1]*yval + left_fit_cr[2]
-        x_rint = right_fit_cr[0]*yval**2 + right_fit_cr[1]*yval + right_fit_cr[2]
-        x_midpt = (x_lint+x_rint) /2
     
-    return left_curverad, right_curverad, x_lint, x_rint
+    return left_curverad, right_curverad
 
 
