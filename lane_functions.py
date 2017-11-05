@@ -107,12 +107,19 @@ def window_mask(width, height, img_ref, center, level):
            max(0,int(center-width/2)):min(int(center+width/2),img_ref.shape[1])] = 1
     return output
 
-def find_poly_from_hist(binary_warped, margin=100, minpix=50, visualize=False):
+def find_poly_from_hist(binary_warped, margin=100, minpix=50):
     '''
     Inputs:
         binary_warped - warped binary image of thresholded pixels
         margin - the +/- width of the window being swept
         minpix - the minimum number of pixels to recenter the window
+        
+    Outputs:
+        left_fit - polynomial for the left line
+        right_fit - polynomial for the right line
+        (leftx, lefty) - all sets of points used for the left line
+        (rightx, righty) - all sets of points used for the right line
+        out_img - if visualizing the output image
     '''
 
     # Assuming you have created a warped binary image called "binary_warped"
@@ -153,11 +160,10 @@ def find_poly_from_hist(binary_warped, margin=100, minpix=50, visualize=False):
         win_xright_low = rightx_current - margin
         win_xright_high = rightx_current + margin
         # Draw the windows on the visualization image
-        if visualize:
-            cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),
-            (0,255,0), 2) 
-            cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),
-            (0,255,0), 2) 
+        cv2.rectangle(out_img,(win_xleft_low,win_y_low),(win_xleft_high,win_y_high),
+                      (0,255,0), 2) 
+        cv2.rectangle(out_img,(win_xright_low,win_y_low),(win_xright_high,win_y_high),
+                      (0,255,0), 2) 
 
         # Identify the nonzero pixels in x and y within the window
         good_left_inds = ((nonzeroy >= win_y_low) & (nonzeroy < win_y_high) & 
@@ -186,13 +192,14 @@ def find_poly_from_hist(binary_warped, margin=100, minpix=50, visualize=False):
     # Fit a second order polynomial to each
     left_fit = np.polyfit(lefty, leftx, 2)
     right_fit = np.polyfit(righty, rightx, 2)
+     
+    out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+    out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
     
-    if visualize:
-        out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
-        out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
-        return left_fit, right_fit, out_img
+    left_all = zip( nonzerox[left_lane_inds], nonzeroy[left_lane_inds] )
+    right_all = zip( nonzerox[right_lane_inds], nonzeroy[right_lane_inds] )
 
-    return left_fit, right_fit
+    return left_fit, right_fit, left_all, right_all, out_img
 
 def detect_lanes(imname, mtx, dist, M, Minv):
     '''
@@ -242,6 +249,30 @@ def draw_lane(left_fit, right_fit, img_size=(1280, 720)):
     return color_warp
 
 
+def convert_curvature(leftx, rightx, ploty):
+    
+    # Define y-value where we want radius of curvature
+    # I'll choose the maximum y-value, corresponding to the bottom of the image
+    y_eval = np.max(ploty)
+    
+    # Define conversions in x and y from pixels space to meters
+    ym_per_pix = 30/720 # meters per pixel in y dimension
+    xm_per_pix = 3.7/700 # meters per pixel in x dimension
 
+    # Fit new polynomials to x,y in world space
+    left_fit_cr = np.polyfit(ploty*ym_per_pix, leftx*xm_per_pix, 2)
+    right_fit_cr = np.polyfit(ploty*ym_per_pix, rightx*xm_per_pix, 2)
+    # Calculate the new radii of curvature
+    left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
+    right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
+    # Center of the lane (from the left side of the screen)
+    
+    if True:
+        h = 100
+        l_fit_x_int = left_fit_cr[0]*h**2 + left_fit_cr[1]*h + left_fit_cr[2]
+        r_fit_x_int = right_fit_cr[0]*h**2 + right_fit_cr[1]*h + right_fit_cr[2]
+        lane_center_position = (r_fit_x_int + l_fit_x_int) /2
+    
+    return left_curverad, right_curverad, r_fit_x_int, l_fit_x_int
 
 
