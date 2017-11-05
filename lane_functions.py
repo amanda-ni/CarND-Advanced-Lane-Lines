@@ -201,6 +201,62 @@ def find_poly_from_hist(binary_warped, margin=100, minpix=50):
 
     return left_fit, right_fit, left_all, right_all, out_img
 
+def find_poly_from_poly(binary_warped, left_fit, right_fit):
+    
+    # Assume you now have a new warped binary image 
+    # from the next frame of video (also called "binary_warped")
+    # It's now much easier to find line pixels!
+    nonzero = binary_warped.nonzero()
+    nonzeroy = np.array(nonzero[0])
+    nonzerox = np.array(nonzero[1])
+    margin = 100
+    left_lane_inds = ((nonzerox > (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + 
+                                   left_fit[2] - margin)) & 
+                      (nonzerox < (left_fit[0]*(nonzeroy**2) + left_fit[1]*nonzeroy + 
+                                   left_fit[2] + margin))) 
+
+    right_lane_inds = ((nonzerox > (right_fit[0]*(nonzeroy**2) + right_fit[1]*nonzeroy + 
+                                    right_fit[2] - margin)) & 
+                       (nonzerox < (right_fit[0]*(nonzeroy**2) + 
+                                    right_fit[1]*nonzeroy + right_fit[2] + margin)))  
+
+    # Again, extract left and right line pixel positions
+    leftx = nonzerox[left_lane_inds]
+    lefty = nonzeroy[left_lane_inds] 
+    rightx = nonzerox[right_lane_inds]
+    righty = nonzeroy[right_lane_inds]
+    # Fit a second order polynomial to each
+    left_fit = np.polyfit(lefty, leftx, 2)
+    right_fit = np.polyfit(righty, rightx, 2)
+    
+    # Create an image to draw on and an image to show the selection window
+    out_img = np.dstack((binary_warped, binary_warped, binary_warped))*255
+    # Color in left and right line pixels
+    out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
+    out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
+    
+    # Generate a polygon to illustrate the search window area
+    # And recast the x and y points into usable format for cv2.fillPoly()
+    ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
+    left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+    left_line_window1 = np.array([np.transpose(np.vstack([left_fitx-margin, ploty]))])
+    left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx+margin, 
+                                  ploty])))])
+    left_line_pts = np.hstack((left_line_window1, left_line_window2))
+    right_line_window1 = np.array([np.transpose(np.vstack([right_fitx-margin, ploty]))])
+    right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx+margin, 
+                                  ploty])))])
+    right_line_pts = np.hstack((right_line_window1, right_line_window2))
+
+    window_img = np.zeros_like(out_img)
+    # Draw the lane onto the warped blank image
+    cv2.fillPoly(window_img, np.int_([left_line_pts]), (0,255, 0))
+    cv2.fillPoly(window_img, np.int_([right_line_pts]), (0,255, 0))
+    out_img = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
+        
+    return left_fit, right_fit, zip(leftx, lefty), zip(rightx, righty), out_img
+
 def detect_lanes(imname, mtx, dist, M, Minv):
     '''
     Full pipeline to detect lanes
@@ -223,7 +279,7 @@ def detect_lanes(imname, mtx, dist, M, Minv):
     calimg = cv2.undistort(img, mtx, dist, None, mtx)
     warped = cv2.warpPerspective(calimg, M, img_size, flags=cv2.INTER_LINEAR)
     color_binary, combined_binary = find_reclanes(warped)
-    left_fit, right_fit = find_poly_from_hist(combined_binary)
+    left_fit, right_fit, _, _, _ = find_poly_from_hist(combined_binary)
     lanedrawn = draw_lane(left_fit, right_fit, img_size=img_size)
     newwarp = cv2.warpPerspective(lanedrawn, Minv, (img.shape[1], img.shape[0]))     
     return cv2.addWeighted(calimg, 1, newwarp, 0.3, 0)
@@ -266,6 +322,11 @@ def convert_curvature(leftx, rightx, ploty):
     left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
     right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
     
+    left_fit = np.polyfit(ploty, leftx, 2)
+    left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+    right_fit = np.polyfit(ploty, rightx, 2)
+    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+
     return left_curverad, right_curverad
 
 
