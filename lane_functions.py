@@ -305,15 +305,30 @@ def draw_lane(left_fit, right_fit, img_size=(1280, 720)):
     return color_warp
 
 
-def convert_curvature(leftx, rightx, ploty):
+def convert_curvature(left_fit, right_fit, ploty, maxy=720, meters=True):
+    
+    '''
+    Arguments:
+      leftx, rightx = left and right x points
+      ploty = y points, corresponding to both leftx and rightx
+      meters = Do this in meters or pixel space, defaults to meters
+    '''
     
     # Define y-value where we want radius of curvature
     # I'll choose the maximum y-value, corresponding to the bottom of the image
     y_eval = np.max(ploty)
     
-    # Define conversions in x and y from pixels space to meters
-    ym_per_pix = 30/720 # meters per pixel in y dimension
-    xm_per_pix = 3.7/700 # meters per pixel in x dimension
+    ploty = np.linspace(0, maxy-1, maxy )
+    leftx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
+    rightx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
+    
+    if meters:
+        # Define conversions in x and y from pixels space to meters
+        ym_per_pix = 30/720 # meters per pixel in y dimension
+        xm_per_pix = 3.7/700 # meters per pixel in x dimension
+    else:
+        ym_per_pix = 1.0
+        xm_per_pix = 1.0
 
     # Fit new polynomials to x,y in world space
     left_fit_cr = np.polyfit(ploty*ym_per_pix, leftx*xm_per_pix, 2)
@@ -322,11 +337,20 @@ def convert_curvature(leftx, rightx, ploty):
     left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
     right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
     
-    left_fit = np.polyfit(ploty, leftx, 2)
-    left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
-    right_fit = np.polyfit(ploty, rightx, 2)
-    right_fitx = right_fit[0]*ploty**2 + right_fit[1]*ploty + right_fit[2]
-
     return left_curverad, right_curverad
+
+def car_center_offset(left_fit, right_fit, maxy=720, meters=True):
+    
+    left_pos = left_fit[0]*maxy**2 + left_fit[1]*maxy + left_fit[2]
+    right_pos = right_fit[0]*maxy**2 + right_fit[1]*maxy + right_fit[2]
+    
+    offset = 1260/2 - np.mean([left_pos, right_pos])
+    
+    if meters:
+        xm_per_pix=3.7/700
+    else:
+        xm_per_pix=1.0
+
+    return offset*xm_per_pix
 
 
