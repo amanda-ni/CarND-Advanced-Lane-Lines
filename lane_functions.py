@@ -285,7 +285,9 @@ def detect_lanes(imname, mtx, dist, M, Minv):
     return cv2.addWeighted(calimg, 1, newwarp, 0.3, 0)
 
 def draw_lane(left_fit, right_fit, img_size=(1280, 720)):
-    
+    '''
+    Draw lane lines and fill in the lane with green
+    '''
     # Generate x and y values for plotting
     ploty = np.linspace(0, img_size[0]-1, img_size[0] )
     left_fitx = left_fit[0]*ploty**2 + left_fit[1]*ploty + left_fit[2]
@@ -340,6 +342,12 @@ def convert_curvature(left_fit, right_fit, ploty, maxy=720, meters=True):
     return left_curverad, right_curverad
 
 def car_center_offset(left_fit, right_fit, maxy=720, meters=True):
+    '''
+    Determine the center offset for the vehicle. This assumes that the center of the car is the center of the image.:
+    Arguments:
+      - left_fit: line fit to left lane as  polynomial
+      - right_fit: line fit to right lane as polynomial
+    '''
     
     left_pos = left_fit[0]*maxy**2 + left_fit[1]*maxy + left_fit[2]
     right_pos = right_fit[0]*maxy**2 + right_fit[1]*maxy + right_fit[2]

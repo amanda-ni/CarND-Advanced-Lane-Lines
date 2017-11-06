@@ -98,9 +98,20 @@ Then I did some other stuff and fit my lane lines with a 2nd order polynomial ki
 
 ![alt text][image5]
 
-#### 5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
+#### 5. Radius of Curvature and Vehicle Lane Position
 
-I did this in lines # through # in my code in `my_other_file.py`
+I calculated the radius of curvature in my code functions starting on line `310`.
+
+The vehicle offset lane position was calculated with a function called `car_center_offset` starting on line `344` in the python utility functions file `lane_functions.py`. 
+
+In both, I have the option to return in either meters or in pixels with the conditional:
+
+```
+357     if meters:
+358         xm_per_pix=3.7/700
+359     else:
+360         xm_per_pix=1.0
+```
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
@@ -114,7 +125,7 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 #### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my video result](output_videos/project_video_output.mp4)
 
 ---
 
