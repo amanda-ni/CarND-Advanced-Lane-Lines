@@ -8,6 +8,16 @@ import pickle
 def chessboard_corners( imdir , checkcols , checkrows, outdir='examples/calibration_output/' ):
     '''
     Find the chessboard corner correspondences 
+
+    Arguments:
+      - imdir = directory of chessboards
+      - checkcols - number of columns of corners
+      - checkrows - number of rows of corners
+      - outputdir - directory of calibrated images output
+
+    Outputs:
+      - objpoints - object coordinates
+      - imgpoints - image coordinates
     '''
 
     # prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
@@ -46,7 +56,7 @@ def chessboard_corners( imdir , checkcols , checkrows, outdir='examples/calibrat
         
     return objpoints, imgpoints
 
-def find_reclanes(img, gradthresh = (20,100), colorthresh = (170,255)):
+def apply_thresholds(img, gradthresh = (20,100), colorthresh = (170,255)):
     ''' 
     find_reclanes: find rectified lanes
     
@@ -257,7 +267,7 @@ def find_poly_from_poly(binary_warped, left_fit, right_fit):
         
     return left_fit, right_fit, (leftx, lefty), (rightx, righty), out_img
 
-def detect_lanes(imname, mtx, dist, M, Minv):
+def detect_lanes(imname, mtx, dist, M, Minv, add_curvature_info=True):
     '''
     Full pipeline to detect lanes
     Draw lanes on top of image given distortion and image warping matrix
@@ -278,10 +288,20 @@ def detect_lanes(imname, mtx, dist, M, Minv):
     img_size = (img.shape[1],img.shape[0])
     calimg = cv2.undistort(img, mtx, dist, None, mtx)
     warped = cv2.warpPerspective(calimg, M, img_size, flags=cv2.INTER_LINEAR)
-    color_binary, combined_binary = find_reclanes(warped)
+    color_binary, combined_binary = apply_thresholds(warped)
     left_fit, right_fit, _, _, _ = find_poly_from_hist(combined_binary)
     lanedrawn = draw_lane(left_fit, right_fit, img_size=img_size)
-    newwarp = cv2.warpPerspective(lanedrawn, Minv, (img.shape[1], img.shape[0]))     
+    newwarp = cv2.warpPerspective(lanedrawn, Minv, (img.shape[1], img.shape[0]))
+    
+    if add_curvature_info:
+        ploty = np.linspace(0, img_size[0]-1, img_size[0] )
+        curvature = convert_curvature(left_fit, right_fit, ploty, meters=True)
+        caroffset = car_center_offset(left_fit, right_fit, 720)
+        cv2.putText(newwarp, 'Curvature ({:.1f},{:.1f}), Vehicle Offset: {:.2f}m'.format(curvature[0], 
+                                                                                      curvature[1], 
+                                                                                      caroffset), 
+                    (100,80), fontFace = 16, fontScale = 1, color=(255,255,255), thickness = 2)
+
     return cv2.addWeighted(calimg, 1, newwarp, 0.3, 0)
 
 def draw_lane(left_fit, right_fit, img_size=(1280, 720)):

@@ -14,11 +14,11 @@ The goals / steps of this project are the following:
 [//]: # (Image References)
 
 [cam-calibration]: ./examples/cam-calibration/cam-calibration.png "Camera Calibration"
-[image2]: ./test_images/test1.jpg "Road Transformed"
-[image3]: ./examples/binary_combo_example.jpg "Binary Example"
-[image4]: ./examples/warped_straight_lines.jpg "Warp Example"
-[image5]: ./examples/color_fit_lines.jpg "Fit Visual"
-[image6]: ./examples/example_output.jpg "Output"
+[image2]: ./examples/undistorted_example.png "Road Transformed"
+[image3]: ./examples/color_thresholds.png "Binary Example"
+[image4]: ./examples/blue_lines_on_road.png "Warp Example"
+[image5]: ./examples/poly-boxes.png "Fit Visual"
+[image6]: ./examples/example_image.png "Output"
 [video1]: ./project_video.mp4 "Video"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
@@ -35,9 +35,9 @@ The goals / steps of this project are the following:
 
 #### 1. I computed the camera matrix and distortion coefficients. Below is an example of a distortion corrected calibration image along with the processes by which I arrived at the camera calibration parameters.
 
-The code for this step is contained in the first code cell of the IPython notebook located in "./examples/example.ipynb" (or in lines # through # of the file called `some_file.py`).  
+The code for this step is contained in the second code cell of the IPython notebook located in "Pipeline.ipynb". I detect the corners of the chessboards for all the images in the directory specified by `imdir` (which is set to `camera_cal`) in the function `chessboard_corners()`, found in the file [`lane_functions.py`](lane_functions.py), lines 8-57.
 
-I start by preparing "object points", which will be the (x, y, z) coordinates of the chessboard corners in the world. Here I am assuming the chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
+This function looks through the image directory and gathers the correspondences into `objpoints` and `imgpoints`. The "object points" are the (x, y, z) coordinates of the chessboard corners in the world. The chessboard is fixed on the (x, y) plane at z=0, such that the object points are the same for each calibration image.  Thus, `objp` is just a replicated array of coordinates, and `objpoints` will be appended with a copy of it every time I successfully detect all chessboard corners in a test image.  `imgpoints` will be appended with the (x, y) pixel position of each of the corners in the image plane with each successful chessboard detection.  
 
 I then used the output `objpoints` and `imgpoints` to compute the camera calibration and distortion coefficients using the `cv2.calibrateCamera()` function.  I applied this distortion correction to the test image using the `cv2.undistort()` function and obtained this result: 
 
@@ -52,13 +52,17 @@ To demonstrate this step, I will describe how I apply the distortion correction 
 
 #### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
-I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in `another_file.py`).  Here's an example of my output for this step.  (note: this is not actually from one of the test images)
+I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines 59 through 100 in the function titled `apply_thresholds`).  Here's an example of my output for this step with the same picture from quizzes.
 
 ![alt text][image3]
 
+In reality, I applied test images *after* transformation below, which can be seen below.
+
+![Applied threshold](examples/color_thresholds_overhead.png)
+
 #### 3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.
 
-The code for my perspective transform includes a function called `warper()`, which appears in lines 1 through 8 in the file `example.py` (output_images/examples/example.py) (or, for example, in the 3rd code cell of the IPython notebook).  The `warper()` function takes as inputs an image (`img`), as well as source (`src`) and destination (`dst`) points.  I chose the hardcode the source and destination points in the following manner:
+The code for my perspective transform includes a function can be seen in the `Pipeline.ipynb`, the fourth cell.	  I chose the hardcode the source and destination points in the following manner:
 
 ```python
 src = np.float32(
@@ -94,15 +98,32 @@ I verified that my perspective transform was working as expected by drawing the 
 
 #### 4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?
 
-Then I did some other stuff and fit my lane lines with a 2nd order polynomial kinda like this:
+I had several functions to fit polynomials to the binary thresholded image taken from step four of the overhead warped imagery. Depending on the situation, I might like to take a sliding windowed histogram, use a convolution (didn't implement), or use a window around a previously fit function. The choices are evident in the below code.
+
+```
+# Determine the left and right polynomials
+if slide_conv_poly == 'slide':
+    # left_fit, right_fit = find_sliding_poly(combined_binary)
+    lr_fit = find_poly_from_hist(combined_binary)
+elif slide_conv_poly == 'conv':
+    lr_fit = find_poly_from_hist(combined_binary)
+elif slide_conv_poly == 'poly':
+    lr_fit = find_poly_from_poly(combined_binary, left_fit, right_fit)
+```
+
+For fitting a polynomial from a histogram, I implemented a function `find_poly_from_hist` found in `lane_functions.py` from lines 120 to 210. An example of this is shown below:
 
 ![alt text][image5]
 
+For fitting a polynomial from another polynomial, I implemented a function `find_poly_from_poly` in `lane_functions.py` which is directly after `find_poly_from_hist`. An example of this is:
+
+![poly_from_poly](examples/poly_from_poly.png)
+
 #### 5. Radius of Curvature and Vehicle Lane Position
 
-I calculated the radius of curvature in my code functions starting on line `310`.
+I calculated the radius of curvature in my code functions starting on line 320.
 
-The vehicle offset lane position was calculated with a function called `car_center_offset` starting on line `344` in the python utility functions file `lane_functions.py`. 
+The vehicle offset lane position was calculated with a function called `car_center_offset` starting on line 350 in the python utility functions file `lane_functions.py`. 
 
 In both, I have the option to return in either meters or in pixels with the conditional:
 
@@ -115,9 +136,11 @@ In both, I have the option to return in either meters or in pixels with the cond
 
 #### 6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+My full pipeline is shown in a `detect_lines` function as seen in  the ninth cell in `Pipeline.ipynb`. That gives an example of my result on a test image:
 
 ![alt text][image6]
+
+The actual `detect_line` function is seen in `lane_functions.py`.
 
 ---
 
@@ -131,6 +154,10 @@ Here's a [link to my video result](output_videos/project_video_output.mp4)
 
 ### Discussion
 
-#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+Overall, my implementation isn't all that robust. I'm still taking single images and then figuring out whether or not it's found a polynomial before. I re-look for frames every second using `find_poly_from_hist`, but there may be a more principled way of doing that.
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.  
+Something that could be improved is to edit the pipeline so that there is an averaging effect over all the frames. 
+
+That would involve the more extensive use of the `Line` class.
+
+In general, because I'm anxious to get to the next project, I'll come back and make it better.
