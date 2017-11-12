@@ -56,7 +56,7 @@ def chessboard_corners( imdir , checkcols , checkrows, outdir='examples/calibrat
         
     return objpoints, imgpoints
 
-def apply_thresholds(img, gradthresh = (20,100), colorthresh = (120,255)):
+def apply_thresholds_complicated(img, gradthresh = (20,100), colorthresh = (120,255)):
     ''' 
     find_reclanes: find rectified lanes
     
@@ -90,8 +90,11 @@ def apply_thresholds(img, gradthresh = (20,100), colorthresh = (120,255)):
     s_binary = np.zeros_like(s_channel)
     s_binary[(s_channel >= s_thresh_min) & (s_channel <= s_thresh_max)] = 1
     
-    # Added tuning. The gray scale image must be at least somewhat bright
+    # Added tuning. 
+    # The gray scale image must be at least somewhat bright
+    # White or yellow lane
     s_binary &= (gray > 45)
+    s_binary &= comb_thresh(img)
 
     # Stack each channel to view their individual contributions in green and blue respectively
     # This returns a stack of the two binary images, whose components you can see as different colors
@@ -102,6 +105,36 @@ def apply_thresholds(img, gradthresh = (20,100), colorthresh = (120,255)):
     combined_binary[(s_binary == 1) | (sxbinary == 1)] = 1
     
     return color_binary, combined_binary
+
+def apply_thresholds(img, gradthresh = (20,100), colorthresh = (120,255)):
+    
+    white = select_white(img)
+    yellow = select_yellow(img)
+    combo = comb_thresh(img)
+    stacked = np.dstack( (np.zeros_like(combo), white, yellow) )
+    return stacked, combo
+
+def select_white(image):
+    # Threshold white lanes
+    lower = np.array([202,202,202])
+    upper = np.array([255,255,255])
+    mask = cv2.inRange(image, lower, upper)
+    return mask
+
+def select_yellow(image, lower=np.array([20,60,60]), upper = np.array([38, 174, 250])):
+    # Threshold yellow lanes
+    # hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    hsv = cv2.cvtColor(image, cv2.COLOR_RGB2HSV)
+    mask = cv2.inRange(hsv, lower, upper)
+    return mask
+
+def comb_thresh(image):
+    yellow = select_yellow(image)
+    white = select_white(image)
+    combined_binary = np.zeros_like(yellow)
+    combined_binary[(yellow >= 1) | (white >= 1)] = 1
+    return combined_binary
+
 
 def draw_box(im, pairs):
     ''' 
