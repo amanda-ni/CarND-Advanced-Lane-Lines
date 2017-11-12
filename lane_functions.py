@@ -56,7 +56,7 @@ def chessboard_corners( imdir , checkcols , checkrows, outdir='examples/calibrat
         
     return objpoints, imgpoints
 
-def apply_thresholds(img, gradthresh = (20,100), colorthresh = (170,255)):
+def apply_thresholds(img, gradthresh = (20,100), colorthresh = (120,255)):
     ''' 
     find_reclanes: find rectified lanes
     
@@ -89,6 +89,9 @@ def apply_thresholds(img, gradthresh = (20,100), colorthresh = (170,255)):
     s_thresh_min, s_thresh_max = colorthresh
     s_binary = np.zeros_like(s_channel)
     s_binary[(s_channel >= s_thresh_min) & (s_channel <= s_thresh_max)] = 1
+    
+    # Added tuning. The gray scale image must be at least somewhat bright
+    s_binary &= (gray > 45)
 
     # Stack each channel to view their individual contributions in green and blue respectively
     # This returns a stack of the two binary images, whose components you can see as different colors
@@ -356,8 +359,10 @@ def convert_curvature(left_fit, right_fit, ploty, maxy=720, meters=True):
     left_fit_cr = np.polyfit(ploty*ym_per_pix, leftx*xm_per_pix, 2)
     right_fit_cr = np.polyfit(ploty*ym_per_pix, rightx*xm_per_pix, 2)
     # Calculate the new radii of curvature
-    left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
-    right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
+    # left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
+    # right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
+    left_curverad = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / (2*left_fit_cr[0])
+    right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / (2*right_fit_cr[0])
     
     return left_curverad, right_curverad
 
@@ -372,7 +377,7 @@ def car_center_offset(left_fit, right_fit, maxy=720, meters=True):
     left_pos = left_fit[0]*maxy**2 + left_fit[1]*maxy + left_fit[2]
     right_pos = right_fit[0]*maxy**2 + right_fit[1]*maxy + right_fit[2]
     
-    offset = 1260/2 - np.mean([left_pos, right_pos])
+    offset = 1280/2 - np.mean([left_pos, right_pos])
     
     if meters:
         xm_per_pix=3.7/700
